@@ -1,12 +1,13 @@
-# Tier 3 — Premium: cross-dataset SQL with R2 SQL (incl. DLP × HTTP)
+# Tier 3 — Enterprise: cross-dataset SQL with R2 SQL (incl. DLP × HTTP)
 
 Tier 1/2 give you a per-user report on the free data path. **Tier 3** is for customers
 who already own **Cloudflare One + WAF**, generate **DLP** events, and are willing to buy
 some **R2** — the scenario where you want *true* SQL joins across raw datasets, including
 the **DLP × HTTP** correlation Log Explorer can't do today.
 
-> This tier requires **Logpush** (Enterprise) and is **not** part of the free demo. It's
-> documented here as the natural upgrade path.
+> This tier requires **Logpush**, which is available on the **Enterprise** plan
+> (see [Logpush availability](https://developers.cloudflare.com/logs/logpush/#availability)),
+> and is **not** part of the free demo. It's documented here as the natural upgrade path.
 
 ## What lights up in this tier
 These facets are **not** available on the free GraphQL Analytics path (verified
@@ -66,15 +67,15 @@ GROUP BY dlp.user_email, dlp.dataset_name, http.top_host, http.requests
 ORDER BY dlp_hits DESC;
 ```
 
-## Why this is the premium story
+## Why this is the Enterprise story
 - **DLP** is a paid Cloudflare One feature and its events aren't on the free GraphQL
   path — so the DLP correlation belongs here.
-- **Logpush** (Enterprise) gives raw per-event rows with full fidelity and your own
+- **Logpush** (Enterprise plan) gives raw per-event rows with full fidelity and your own
   retention in R2.
 - **R2 SQL** provides the cross-dataset JOIN engine, self-hosted and pay-as-you-go.
 
 ## Cost sketch
-Logpush (incl. with Enterprise) + R2 storage (per-GB, first 10 GB free) + R2 SQL
+Logpush (included with Enterprise) + R2 storage (per-GB, first 10 GB free) + R2 SQL
 (data scanned). Far cheaper than most SIEM ingestion for the same questions, and the
 data stays in your account.
 

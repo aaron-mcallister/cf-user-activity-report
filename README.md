@@ -5,9 +5,8 @@ Log Explorer can't produce today because it can't join across datasets. It runs 
 **Cloudflare Workers free plan**, needs **no Logpush**, and you can stand it up in a
 few minutes.
 
-> Think of it as a self-hosted answer to Palo Alto's
-> [User/Group Activity Report](https://docs.paloaltonetworks.com/ngfw/administration/monitoring/view-and-manage-reports/generate-usergroup-activity-reports),
-> built entirely on Cloudflare primitives.
+> A self-hosted **user activity report** for Cloudflare One — per-user visibility across
+> Gateway, Access, and WAF, built entirely on Cloudflare primitives.
 
 > ⚠️ Personal open-source project — **not an official Cloudflare product** and not
 > supported by Cloudflare. MIT licensed; use at your own risk.
@@ -32,9 +31,9 @@ own free-tier API and correlates them on **user identity** (`email` / `userId` /
 | Access logins | REST — `/access/logs/access_requests` | ✅ user_email / user_id | App logins, IdP, allowed/blocked, country |
 | Zone HTTP + WAF | GraphQL — `httpRequestsAdaptiveGroups`, `firewallEventsAdaptiveGroups` | by host / action | Origin traffic + security events for your own zones |
 
-The result is a Palo-style per-user report: activity totals, allowed vs blocked vs
-bypass, top domains, **category breakdown**, login history — with drill-down per user
-and CSV/JSON export, plus top-level search by category, domain, or user.
+The result is a comprehensive per-user activity report: activity totals, allowed vs
+blocked vs bypass, top domains, **category breakdown**, login history — with drill-down
+per user and CSV/JSON/PDF export, plus top-level search by category, domain, or user.
 
 ---
 
@@ -50,7 +49,7 @@ and CSV/JSON export, plus top-level search by category, domain, or user.
 |---|---|
 | ![Malware search](docs/screenshot-search-malware.png) | ![Hash spread](docs/screenshot-hash-spread.png) |
 
-| “Newly Seen Domains” → RBI tee-up | Per-user drill-down |
+| “Newly Seen Domains” → Isolated per best practices | Per-user drill-down |
 |---|---|
 | ![Newly Seen Domains](docs/screenshot-newly-seen-domains.png) | ![User detail](docs/screenshot-user.png) |
 
@@ -62,7 +61,7 @@ and CSV/JSON export, plus top-level search by category, domain, or user.
 
 *(All screenshots use built-in **demo mode** — synthetic data, no real people. Search
 categories, file hashes, and bytes-transferred are demo-only today; see
-[Limitations](#limitations--honesty) for what's live on the free tier vs. premium.)*
+[Limitations](#limitations--honesty) for what's live on the free tier vs. Enterprise.)*
 
 ---
 
@@ -94,11 +93,11 @@ the report. Retention = whatever your plan exposes (short — see
 `wrangler.jsonc` and the Worker snapshots each pull into **R2** (free up to 10 GB) as
 NDJSON, so you keep history well beyond the platform window. Still **$0** for most orgs.
 
-**Tier 3 — Premium (cross-dataset SQL, incl. DLP).** For customers who own Cloudflare
+**Tier 3 — Enterprise (cross-dataset SQL, incl. DLP).** For customers who own Cloudflare
 One + WAF and will buy some R2: pipe raw events via **Logpush → R2 → R2 Data Catalog**
 and run true cross-dataset **SQL joins** (including **DLP × HTTP**) with **R2 SQL**.
-This is the enterprise mirror of the Log Explorer join gap. See
-[docs/premium-r2-sql.md](docs/premium-r2-sql.md).
+Logpush requires an **Enterprise** plan. This is the Enterprise mirror of the Log
+Explorer join gap. See [docs/enterprise-r2-sql.md](docs/enterprise-r2-sql.md).
 
 ---
 
@@ -193,25 +192,25 @@ the deployment as sensitive:
   *report*, but not raw per-request logs. Raw per-event export = Logpush = Enterprise.
 - **Per-user web activity needs WARP.** Identity is attached to **Gateway HTTP (L7)**.
   Gateway **DNS** analytics are aggregate-only (no per-user identity dimensions).
-- **DLP is not on this path.** DLP correlation is the **Tier 3 / premium** story
+- **DLP is not on this path.** DLP correlation is the **Tier 3 / Enterprise** story
   (Logpush → R2 → R2 SQL), not the free demo.
 
 Here's exactly what's confirmed on the **free** GraphQL path vs. what needs **Logpush
-(premium)** — verified empirically against a live account:
+(Enterprise)** — verified empirically against a live account:
 
 | Facet | Free tier? | Notes |
 |---|---|---|
 | Per-user identity (`email`/`userId`/`deviceId`) on Gateway HTTP | ✅ Free | Confirmed |
 | **Content/security categories** (per-user on L7, account-level on DNS) | ✅ Free | `categoryNames` / `categoryIds` — powers category & malware search |
 | Access logins | ✅ Free | Confirmed |
-| **File hash** (for the lateral-spread pivot) | ⚠️ Premium | Not a free GraphQL dimension; `BlockedFileHash` comes from **Logpush** |
-| **Bytes transferred** (upload/download) | ⚠️ Premium | Gateway HTTP has no byte aggregation on free tier; Gateway Network / ZT Network Session datasets aren't on the free GraphQL API. Byte telemetry comes from **Logpush** (`bytessent`/`bytesreceived`) |
+| **File hash** (for the lateral-spread pivot) | ⚠️ Enterprise | Not a free GraphQL dimension; `BlockedFileHash` comes from **Logpush** |
+| **Bytes transferred** (upload/download) | ⚠️ Enterprise | Gateway HTTP has no byte aggregation on free tier; Gateway Network / ZT Network Session datasets aren't on the free GraphQL API. Byte telemetry comes from **Logpush** (`bytessent`/`bytesreceived`) |
 
 - **What this means for the demo vs. live:** category views/search work on **live free-tier
   data**. The **file-hash pivot** and **bytes-transferred** panels are shown with
   **synthetic demo data** to illustrate the full experience; on live free-tier accounts
-  those panels are empty (with a note), and light up in the premium (Logpush → R2 → R2 SQL)
-  tier. See [docs/premium-r2-sql.md](docs/premium-r2-sql.md).
+  those panels are empty (with a note), and light up in the Enterprise (Logpush → R2 → R2 SQL)
+  tier. See [docs/enterprise-r2-sql.md](docs/enterprise-r2-sql.md).
 - Run `npm run preflight` to see exactly what *your* plan exposes.
 
 ---
@@ -219,7 +218,7 @@ Here's exactly what's confirmed on the **free** GraphQL path vs. what needs **Lo
 ## Roadmap
 - [ ] Wire **live** per-user categories (confirmed available free on `gatewayL7RequestsAdaptiveGroups`)
 - [ ] Historical charts sourced from R2 snapshots (Tier 2)
-- [ ] Example R2 SQL notebooks for the premium DLP × HTTP join, file-hash, and bytes (Tier 3)
+- [ ] Example R2 SQL notebooks for the Enterprise DLP × HTTP join, file-hash, and bytes (Tier 3)
 - [ ] Optional Access JWT verification in-Worker
 
 ## Contributing

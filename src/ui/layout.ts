@@ -133,6 +133,16 @@ footer.app { color: var(--muted); font-size: 12px; margin-top: 28px; text-align:
 .spread-warn { color: var(--bad); font-weight: 600; }
 @media (prefers-color-scheme: dark) { .callout { background:#0f1b2e; color:#bfdbfe; border-color:#1e3a5f; }
   .callout a { color:#93c5fd; } .quick.danger { background:#2a0f0f; border-color:#3a1a1a; color:#fca5a5; } }
+@media print {
+  :root { --bg:#fff; --panel:#fff; --ink:#000; --muted:#444; --line:#ccc; --shadow:none; }
+  body { background:#fff; color:#000; }
+  .search, .controls, .chips-row { display:none !important; }
+  .panel, .card, .callout { box-shadow:none; border-color:#ccc; break-inside:avoid; }
+  a { color:inherit; text-decoration:none; }
+  tbody tr:hover { background:transparent; }
+  header.app .mark { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  footer.app { border-top:1px solid #ccc; padding-top:8px; }
+}
 `;
 
 export function page(title: string, body: SafeHtml): string {
