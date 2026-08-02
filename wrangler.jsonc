@@ -1,0 +1,54 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cf-user-activity-report",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+
+  // ---------------------------------------------------------------------------
+  // Custom domain (optional). Deploy from an account where the zone exists, e.g.:
+  //   "routes": [
+  //     { "pattern": "activity.example.com", "custom_domain": true }
+  //   ],
+  // A public instance should run DEMO_MODE=on (synthetic data — safe to expose, no
+  // PII, no auth needed). Use a separate, Access-protected deploy for real account
+  // data. See docs/deploy.md.
+  // ---------------------------------------------------------------------------
+
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // Your Cloudflare Account ID (Dash -> any domain -> Overview, right rail).
+    // Can be left blank to auto-discover from the token (if it sees one account).
+    "CF_ACCOUNT_ID": "",
+
+    // Optional: a Zone ID to include origin HTTP + WAF/firewall events in the report.
+    "CF_ZONE_ID": "",
+
+    // "auto" = demo data when no CF_API_TOKEN is set, live data when it is.
+    // Force with "on" (always demo) or "off" (always live).
+    "DEMO_MODE": "auto",
+
+    // Safety valve: serving REAL user activity (PII) requires auth to be configured
+    // (Cloudflare Access in front, or BASIC_AUTH_* below). Set to "true" only if you
+    // knowingly want to serve live data with no app-layer auth (NOT recommended).
+    "ALLOW_UNAUTHENTICATED": "false"
+
+    // Optional built-in Basic Auth for the deployed app. Prefer Cloudflare Access.
+    // Set these as SECRETS, not vars:  wrangler secret put BASIC_AUTH_USER
+    //                                  wrangler secret put BASIC_AUTH_PASS
+  }
+
+  // ---------------------------------------------------------------------------
+  // TIER 2 — self-hosted retention (optional, still free up to 10 GB in R2).
+  // Uncomment to have a Cron trigger snapshot each pull into R2 as NDJSON so you
+  // keep history beyond the platform's short analytics retention window.
+  //
+  // "r2_buckets": [
+  //   { "binding": "ACTIVITY_BUCKET", "bucket_name": "user-activity-history" }
+  // ],
+  // "triggers": {
+  //   "crons": ["0 * * * *"]   // hourly
+  // }
+  // ---------------------------------------------------------------------------
+}

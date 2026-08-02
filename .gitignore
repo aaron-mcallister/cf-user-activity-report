@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Local secrets — NEVER commit these
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.token
+spike-results.json
+
+# Wrangler / build output
+.wrangler/
+dist/
+worker-configuration.d.ts
+
+# Logs & OS cruft
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
