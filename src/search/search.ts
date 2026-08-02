@@ -2,7 +2,7 @@ import type { Report } from "../cloudflare/types";
 
 /**
  * Categories where Cloudflare's recommended HTTP policies suggest **isolation**
- * (Remote Browser Isolation) rather than a hard block — the tee-up for the RBI story.
+ * (Remote Browser Isolation) rather than a hard block, per Cloudflare best practices.
  * See: https://developers.cloudflare.com/learning-paths/secure-internet-traffic/build-http-policies/recommended-http-policies/#all-http-domain-isolate
  */
 export const ISOLATION_RECOMMENDED = new Set([

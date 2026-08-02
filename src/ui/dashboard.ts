@@ -38,6 +38,7 @@ export function renderDashboard(report: Report): string {
       <span style="flex:1"></span>
       <a href="/report.csv?days=${days}">⬇ CSV</a>
       <a href="/report.json?days=${days}">⬇ JSON</a>
+      <a href="#" onclick="window.print();return false;">⬇ PDF</a>
       <a href="/preflight">Preflight</a>
     </div>`;
 

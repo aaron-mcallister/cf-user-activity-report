@@ -19,7 +19,8 @@ export function renderUser(user: UserActivity, meta: Report["meta"]): string {
   const days = meta.days;
   const back = html`<div class="controls"><a href="/?days=${days}">← All users</a>
     <span style="flex:1"></span>
-    <a href="/report.csv?days=${days}">⬇ CSV (all)</a></div>`;
+    <a href="/report.csv?days=${days}">⬇ CSV (all)</a>
+    <a href="#" onclick="window.print();return false;">⬇ PDF</a></div>`;
 
   const header = html`
     <div class="panel">

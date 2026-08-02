@@ -71,7 +71,7 @@ export async function buildReport(cfg: ResolvedConfig, win: Window): Promise<Rep
       // Categories are available on the free GraphQL path (categoryNames on
       // gatewayL7RequestsAdaptiveGroups) and are wired live here. File hash and
       // bytes-transferred are NOT on the free path (they come from Logpush datasets in the
-      // premium tier), so they stay demo-only. Demo mode shows the full experience.
+      // Enterprise tier), so they stay demo-only. Demo mode shows the full experience.
       categoryRows: l7Cats.status === "fulfilled" ? l7Cats.value : [],
       fileRows: [],
       sessionRows: [],
@@ -86,7 +86,7 @@ export async function buildReport(cfg: ResolvedConfig, win: Window): Promise<Rep
       notes.push("Gateway L7 returned no rows — is WARP deployed so requests carry identity?");
     }
     notes.push(
-      "File-hash and bytes-transferred panels require Logpush (premium tier) and are shown with demo data only. See docs/premium-r2-sql.md.",
+      "File-hash and bytes-transferred panels require Logpush (Enterprise tier) and are shown with demo data only. See docs/enterprise-r2-sql.md.",
     );
 
     if (zoneId) {
