@@ -1,0 +1,32 @@
+{
+  "name": "cf-user-activity-report",
+  "version": "0.1.0",
+  "description": "A homegrown per-user activity report for Cloudflare One — correlate Gateway, Access, and WAF activity by user identity. Runs on a Cloudflare Workers free plan, no Logpush required.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "preflight": "node scripts/preflight.mjs",
+    "cf-typegen": "wrangler types"
+  },
+  "keywords": [
+    "cloudflare",
+    "cloudflare-one",
+    "zero-trust",
+    "gateway",
+    "access",
+    "workers",
+    "user-activity-report",
+    "sase"
+  ],
+  "author": "Aaron McAllister",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.0.0"
+  }
+}
