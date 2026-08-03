@@ -10,15 +10,16 @@ export interface SnapshotOutcome {
 }
 
 /**
- * TIER 2 — self-hosted retention.
+ * Optional self-hosted retention (off by default).
  * Pulls the last 24h and appends a per-user NDJSON snapshot into R2 so history is
  * retained beyond the platform's short analytics window. No-op unless the
- * ACTIVITY_BUCKET binding is present (see wrangler.jsonc), so Tier 1 stays zero-config.
+ * ACTIVITY_BUCKET binding is present (see wrangler.jsonc), so the default deploy
+ * stays stateless and zero-config.
  */
 export async function snapshotToR2(env: Env): Promise<SnapshotOutcome> {
   const cfg = resolveConfig(env);
   if (!env.ACTIVITY_BUCKET) {
-    return { ok: false, note: "ACTIVITY_BUCKET not bound — Tier 2 retention disabled." };
+    return { ok: false, note: "ACTIVITY_BUCKET not bound — optional retention disabled." };
   }
   if (cfg.demo) {
     return { ok: false, note: "Demo mode — nothing to snapshot." };

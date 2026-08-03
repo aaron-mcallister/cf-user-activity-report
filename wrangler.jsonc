@@ -40,9 +40,11 @@
   }
 
   // ---------------------------------------------------------------------------
-  // TIER 2 — self-hosted retention (optional, still free up to 10 GB in R2).
-  // Uncomment to have a Cron trigger snapshot each pull into R2 as NDJSON so you
-  // keep history beyond the platform's short analytics retention window.
+  // OPTIONAL retention (off by default — the default deploy is stateless & zero-config).
+  // Still free up to 10 GB in R2. Enable R2 on your account once, create the bucket
+  // (`wrangler r2 bucket create user-activity-history`), then uncomment the block below
+  // to have a Cron trigger snapshot each pull into R2 as NDJSON, keeping history beyond
+  // the platform's short analytics window. See docs/deploy.md#retention.
   //
   // "r2_buckets": [
   //   { "binding": "ACTIVITY_BUCKET", "bucket_name": "user-activity-history" }

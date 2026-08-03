@@ -126,7 +126,7 @@ export async function runPreflight(cfg: ResolvedConfig): Promise<PreflightResult
   } else if (!hasIdentity) {
     recommendation = "Gateway HTTP is present but identity dimensions are absent — deploy WARP so requests carry user identity.";
   } else {
-    recommendation = `Ready. Per-user Gateway HTTP${hasCategories ? " + categories" : ""} + ${accessLogs?.ok ? "Access logins" : "(Access logs unavailable)"} available; ~${retentionDays ?? "?"}d retention. File hash + bytes need Logpush (Enterprise). Enable Tier 2 (R2) for longer history.`;
+    recommendation = `Ready. Per-user Gateway HTTP${hasCategories ? " + categories" : ""} + ${accessLogs?.ok ? "Access logins" : "(Access logs unavailable)"} available; ~${retentionDays ?? "?"}d retention. File hash + bytes need Logpush (Enterprise). Turn on optional R2 retention for longer history.`;
   }
 
   return { demo: false, accountId, datasets, identityOnGatewayL7, accessLogs, retentionDays, recommendation };

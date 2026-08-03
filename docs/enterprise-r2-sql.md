@@ -1,9 +1,9 @@
-# Tier 3 — Enterprise: cross-dataset SQL with R2 SQL (incl. DLP × HTTP)
+# Enterprise: cross-dataset SQL with R2 SQL (incl. DLP × HTTP)
 
-Tier 1/2 give you a per-user report on the free data path. **Tier 3** is for customers
-who already own **Cloudflare One + WAF**, generate **DLP** events, and are willing to buy
-some **R2** — the scenario where you want *true* SQL joins across raw datasets, including
-the **DLP × HTTP** correlation Log Explorer can't do today.
+The **free** tier gives you a per-user report on the live data path. The **Enterprise**
+tier is for customers who already own **Cloudflare One + WAF**, generate **DLP** events,
+and are willing to buy some **R2** — the scenario where you want *true* SQL joins across
+raw datasets, including the **DLP × HTTP** correlation Log Explorer can't do today.
 
 > This tier requires **Logpush**, which is available on the **Enterprise** plan
 > (see [Logpush availability](https://developers.cloudflare.com/logs/logpush/#availability)),
