@@ -2,7 +2,7 @@
 
 /** Worker environment: vars from wrangler.jsonc, secrets from `wrangler secret`, bindings. */
 export interface Env {
-  // --- secrets (set via `wrangler secret put ...`) ---
+  // --- secrets (set via `npx wrangler secret put ...`) ---
   CF_API_TOKEN?: string;
   BASIC_AUTH_USER?: string;
   BASIC_AUTH_PASS?: string;

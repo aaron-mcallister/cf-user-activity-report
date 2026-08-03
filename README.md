@@ -85,7 +85,7 @@ calls Cloudflare's own APIs and renders HTML.
 
 ## Tiers
 
-**Free (default).** Clone, `wrangler deploy`, done — **$0** on Workers Free. The Worker
+**Free (default).** Clone, `npm run deploy`, done — **$0** on Workers Free. The Worker
 queries the APIs on demand and renders the report, storing nothing. Retention is whatever
 your plan exposes (short — see [Limitations](#limitations--honesty)).
 
@@ -183,7 +183,7 @@ npm run deploy
 - To show **your real data**, add your token (Wrangler prompts you to paste it) and deploy
   again:
   ```bash
-  wrangler secret put CF_API_TOKEN
+  npx wrangler secret put CF_API_TOKEN
   npm run deploy
   ```
   **Protect the site first** if it will show real data — see [Security](#security--privacy).

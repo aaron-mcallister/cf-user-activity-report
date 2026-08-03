@@ -21,14 +21,14 @@ Newly Seen Domains / file-hash pivot) with fabricated data.
 Serves real user activity (PII). **Must be protected** and should never be a public URL.
 
 ```bash
-wrangler secret put CF_API_TOKEN        # scoped, read-only (see token-scopes.md)
+npx wrangler secret put CF_API_TOKEN    # scoped, read-only (see token-scopes.md)
 # in wrangler.jsonc [vars]: DEMO_MODE = "off", set CF_ACCOUNT_ID (+ optional CF_ZONE_ID)
 npm run deploy
 ```
 
 Then protect it (pick one):
 - **Cloudflare Access** in front of the Worker route (Zero Trust → Access → Applications) — recommended.
-- Built-in Basic Auth: `wrangler secret put BASIC_AUTH_USER` + `BASIC_AUTH_PASS`.
+- Built-in Basic Auth: `npx wrangler secret put BASIC_AUTH_USER` + `BASIC_AUTH_PASS`.
 
 The Worker refuses to serve live data unless one of these is configured (or you set
 `ALLOW_UNAUTHENTICATED=true`, which you shouldn't for real data).
@@ -47,10 +47,23 @@ zero-config deploy always just works. Retention is a one-time opt-in:
 
 1. Enable R2 on your account once (Dashboard → **R2** → *Get started* / add a payment
    method — the first 10 GB-month is free).
-2. Create the bucket: `wrangler r2 bucket create user-activity-history`
+2. Create the bucket: `npx wrangler r2 bucket create user-activity-history`
 3. Uncomment the `r2_buckets` + `triggers.crons` block in `wrangler.jsonc`.
 4. Redeploy: `npm run deploy`.
 
 The scheduled handler then appends per-user NDJSON snapshots so you keep history beyond
 the platform's short analytics window. Snapshots are aggregate per-user rollups (small) —
 10 GB goes a long way. Leave the block commented to stay fully stateless.
+
+## Troubleshooting
+
+**`command not found: wrangler`** — Wrangler is a project dependency, not a global program.
+Prefix commands with `npx`, e.g. `npx wrangler secret put CF_API_TOKEN`. (After
+`npm install`, `npx` finds the local copy automatically.)
+
+**Error 1104 "Script not found" on your `*.workers.dev` URL right after the first deploy** —
+this is normal. The very first time an account uses a `workers.dev` subdomain it takes a
+minute or two to propagate. Wait ~2 minutes and hard-refresh. If it persists past ~5
+minutes, open **Workers & Pages → your Worker → Settings → Domains & Routes** and confirm
+the `workers.dev` route is enabled (or just add a custom domain). The deploy itself
+succeeded — this is only about the preview URL resolving.

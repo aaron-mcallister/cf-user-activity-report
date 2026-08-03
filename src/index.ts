@@ -62,8 +62,8 @@ function setupNotice() {
         <li><b>Recommended:</b> put <b>Cloudflare Access</b> in front of this Worker's route
           (Zero Trust → Access → Applications), then it's protected at the edge.</li>
         <li>Or set built-in Basic Auth secrets:
-          <code>wrangler secret put BASIC_AUTH_USER</code> and
-          <code>wrangler secret put BASIC_AUTH_PASS</code>.</li>
+          <code>npx wrangler secret put BASIC_AUTH_USER</code> and
+          <code>npx wrangler secret put BASIC_AUTH_PASS</code>.</li>
         <li>Or, only for a throwaway test, set <code>ALLOW_UNAUTHENTICATED=true</code> in
           <code>wrangler.jsonc</code> (not recommended).</li>
       </ul>
