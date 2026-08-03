@@ -46,11 +46,18 @@ function guard(cfg: ResolvedConfig, request: Request): Response | null {
 function setupNotice() {
   return html`
     <div class="notes">
-      <b>Live data is protected.</b> This deployment would serve real user activity (PII)
-      but no app-layer authentication is configured.
+      <b>Live data is protected.</b> This is not an error — the app won't show real user
+      activity (PII) until it's protected by authentication.
+    </div>
+    <div class="callout">
+      <h3>👩‍💻 Testing on your own computer?</h3>
+      <div>This is safe to bypass on localhost. The easiest way: run <code>npm run setup</code>
+        (it enables local viewing for you), or add this line to your <code>.dev.vars</code> file
+        and restart:<br>
+        <code>ALLOW_UNAUTHENTICATED="true"</code></div>
     </div>
     <div class="panel"><div class="body" style="padding:16px">
-      <p>Choose one before exposing live data:</p>
+      <p>Before exposing live data on a <b>deployed</b> site, protect it — choose one:</p>
       <ul>
         <li><b>Recommended:</b> put <b>Cloudflare Access</b> in front of this Worker's route
           (Zero Trust → Access → Applications), then it's protected at the edge.</li>

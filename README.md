@@ -155,15 +155,17 @@ created (or run `npm run setup` again to change the token).
 <summary><b>Prefer to set it up by hand?</b> (instead of <code>npm run setup</code>)</summary>
 
 `npm run setup` just writes a small file called `.dev.vars` for you. To create it
-yourself, run these two lines — replace <code>YOUR_TOKEN</code> with the token you copied
+yourself, run these three lines — replace <code>YOUR_TOKEN</code> with the token you copied
 (keep the quotes):
 ```bash
 echo 'CF_API_TOKEN="YOUR_TOKEN"' > .dev.vars
 echo 'DEMO_MODE="off"' >> .dev.vars
+echo 'ALLOW_UNAUTHENTICATED="true"' >> .dev.vars
 ```
-Then `npm run dev`. (Optional: add a line `CF_ACCOUNT_ID="..."` if the token can see more
-than one account.) You can also copy `.dev.vars.example` to `.dev.vars` and edit it in any
-text editor.
+Then `npm run dev`. (The third line lets you view live data on **localhost** without extra
+auth — safe because `.dev.vars` is local-only and never used when you deploy.) Optional: add
+`CF_ACCOUNT_ID="..."` if the token can see more than one account. You can also copy
+`.dev.vars.example` to `.dev.vars` and edit it in any text editor.
 </details>
 
 ### 4. Deploy

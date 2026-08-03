@@ -8,10 +8,25 @@
 // Token scopes: Account Analytics:Read, Access: Audit Logs:Read (Zone Analytics:Read
 // optional for WAF). See docs/token-scopes.md.
 
+// Load .dev.vars (the file `npm run setup` writes) so this works right after setup,
+// without needing the token exported in your shell. Env vars still take precedence.
+import { existsSync, readFileSync } from "node:fs";
+if (existsSync(".dev.vars")) {
+  for (const line of readFileSync(".dev.vars", "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/i);
+    if (!m) continue;
+    const key = m[1];
+    let val = m[2].trim().replace(/^["']|["']$/g, ""); // strip surrounding quotes
+    if (val && process.env[key] === undefined) process.env[key] = val;
+  }
+}
+
 const token = process.env.CF_API_TOKEN;
 let account = process.env.CF_ACCOUNT_ID || null;
 if (!token) {
-  console.error("ERROR: CF_API_TOKEN is required.");
+  console.error("No API token found.");
+  console.error("Run `npm run setup` and paste your token, then try again.");
+  console.error("(Or set one for this command: CF_API_TOKEN=xxx npm run preflight)");
   process.exit(1);
 }
 
@@ -113,4 +128,15 @@ async function checkAccess() {
     ? `✅ Ready. Per-user Gateway HTTP available${access.ok ? " + Access logins" : ""}. Deploy with: npm run deploy`
     : `⚠️  Not ready. Need Cloudflare One Gateway (HTTP filtering) + WARP so requests carry identity. See README.`);
   console.log("");
-})();
+})().catch((e) => {
+  console.error("\nCouldn't complete the preflight check.");
+  console.error(`Reason: ${e?.message || e}`);
+  console.error(
+    "\nCommon fixes:\n" +
+      "  • Double-check the token was copied in full (re-run `npm run setup`).\n" +
+      "  • Make sure the token has: Account Analytics:Read + Access: Audit Logs:Read.\n" +
+      "  • If your token can see more than one account, set CF_ACCOUNT_ID in .dev.vars.\n" +
+      "  • See docs/token-scopes.md for the exact steps.",
+  );
+  process.exit(1);
+});

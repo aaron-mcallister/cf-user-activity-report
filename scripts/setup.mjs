@@ -53,7 +53,11 @@ const contents =
   `# Local settings for "npm run dev" — created by "npm run setup".\n` +
   `# This file stays on your machine and is gitignored. Never commit it.\n` +
   `CF_API_TOKEN="${token}"\n` +
-  `DEMO_MODE="off"\n`;
+  `DEMO_MODE="off"\n` +
+  `# Lets you view live data on your own computer (localhost) without extra auth.\n` +
+  `# Safe here because this file is local-only and never used when you deploy —\n` +
+  `# a deployed site still refuses live data until you protect it. See README > Security.\n` +
+  `ALLOW_UNAUTHENTICATED="true"\n`;
 
 writeFileSync(".dev.vars", contents);
 rl.close();
