@@ -203,7 +203,12 @@ must be protected), plus custom-domain setup, see **[docs/deploy.md](docs/deploy
 | `CF_ZONE_ID` | var | Optional zone for origin HTTP + WAF events. |
 | `DEMO_MODE` | var | `auto` (demo when no token), `on`, or `off`. |
 | `ALLOW_UNAUTHENTICATED` | var | `true` to serve live data with no app auth (not recommended). |
+| `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | var | Optional — turn on Cloudflare Access **JWT verification** (defense-in-depth). |
 | `BASIC_AUTH_USER` / `BASIC_AUTH_PASS` | secret | Optional built-in Basic Auth. |
+
+Cloudflare Access is **auto-detected** — put it in front and authenticated users are let
+through with no config. The two `CF_ACCESS_*` vars only add cryptographic JWT verification
+on top (see [docs/deploy.md](docs/deploy.md)).
 
 Routes: `/` dashboard · `/user/<email>` drill-down · `/report.csv` · `/report.json` ·
 `/preflight` · `/healthz`.
@@ -216,8 +221,12 @@ This tool surfaces **real user activity (PII)** — emails, domains visited, log
 the deployment as sensitive:
 
 - 🔒 **By default the Worker refuses to serve live data unless it's protected.** Put
-  **Cloudflare Access** in front of the route (recommended), or set `BASIC_AUTH_*`.
+  **Cloudflare Access** in front (recommended — it's auto-detected), or set `BASIC_AUTH_*`.
   Only set `ALLOW_UNAUTHENTICATED=true` for a throwaway test.
+- ⚠️ **Mind the `*.workers.dev` bypass:** if you protect a custom domain with Access but
+  leave the `workers.dev` URL enabled, that URL is an unprotected way in. Protect it too,
+  disable it (`"workers_dev": false`), or enable JWT verification. See
+  [docs/deploy.md](docs/deploy.md).
 - The token is **read-only** and stored as a Wrangler **secret** (never in git).
 - Demo mode serves only synthetic data, so it's safe to show publicly.
 - Pages are served `noindex`.

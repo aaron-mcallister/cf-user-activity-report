@@ -29,10 +29,18 @@
     // Force with "on" (always demo) or "off" (always live).
     "DEMO_MODE": "auto",
 
-    // Safety valve: serving REAL user activity (PII) requires auth to be configured
-    // (Cloudflare Access in front, or BASIC_AUTH_* below). Set to "true" only if you
-    // knowingly want to serve live data with no app-layer auth (NOT recommended).
-    "ALLOW_UNAUTHENTICATED": "false"
+    // Safety valve: serving REAL user activity (PII) requires auth to be configured.
+    // The app AUTO-DETECTS Cloudflare Access (recommended) — put Access in front and no
+    // config is needed here. Set to "true" only if you knowingly want to serve live data
+    // with no app-layer auth (NOT recommended).
+    "ALLOW_UNAUTHENTICATED": "false",
+
+    // Optional (defense-in-depth): verify the Cloudflare Access JWT signature, so even an
+    // exposed route (e.g. a still-enabled *.workers.dev URL) can't be spoofed. Fill both
+    // to turn on verification. AUD = your Access application's "Application Audience (AUD)
+    // Tag"; team domain = your Zero Trust team domain. See docs/deploy.md.
+    "CF_ACCESS_TEAM_DOMAIN": "",
+    "CF_ACCESS_AUD": ""
 
     // Optional built-in Basic Auth for the deployed app. Prefer Cloudflare Access.
     // Set these as SECRETS, not vars:  npx wrangler secret put BASIC_AUTH_USER
