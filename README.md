@@ -123,35 +123,71 @@ npm install
 npm run dev        # open http://localhost:8787 — synthetic data
 ```
 
-### 3. Point it at your account
-Create a **scoped, read-only** API token (see
-[docs/token-scopes.md](docs/token-scopes.md)):
+### 3. Point it at your account (optional)
+
+Demo mode already works — do this only when you want to see **your** account's real data
+instead of the sample.
+
+**a. Create a read-only API token** (about 2 minutes). Full click-by-click walkthrough in
+[docs/token-scopes.md](docs/token-scopes.md). In short, at
+[dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) →
+**Create Custom Token**, with:
 - Account → **Account Analytics** → Read
 - Account → **Access: Audit Logs** → Read
 - Zone → **Analytics** → Read *(optional, for WAF/origin)*
 
-Check your plan actually exposes the data:
+**b. Hand the token to the app** — run this and paste the token when it asks (no file
+editing, no code):
 ```bash
-CF_API_TOKEN=xxx npm run preflight
+npm run setup
 ```
 
-Then run live locally:
+**c. See your data:**
 ```bash
-cp .dev.vars.example .dev.vars      # put your token in .dev.vars
-echo 'DEMO_MODE = "off"' >> .dev.vars   # or set in wrangler.jsonc
-npm run dev
+npm run preflight   # optional: confirms your plan exposes the data
+npm run dev         # open http://localhost:8787 — now showing your account
 ```
+
+That's it. To go back to the sample data later, delete the `.dev.vars` file the setup
+created (or run `npm run setup` again to change the token).
+
+<details>
+<summary><b>Prefer to set it up by hand?</b> (instead of <code>npm run setup</code>)</summary>
+
+`npm run setup` just writes a small file called `.dev.vars` for you. To create it
+yourself, run these two lines — replace <code>YOUR_TOKEN</code> with the token you copied
+(keep the quotes):
+```bash
+echo 'CF_API_TOKEN="YOUR_TOKEN"' > .dev.vars
+echo 'DEMO_MODE="off"' >> .dev.vars
+```
+Then `npm run dev`. (Optional: add a line `CF_ACCOUNT_ID="..."` if the token can see more
+than one account.) You can also copy `.dev.vars.example` to `.dev.vars` and edit it in any
+text editor.
+</details>
 
 ### 4. Deploy
+
+Log in once (this opens your browser):
 ```bash
-wrangler secret put CF_API_TOKEN    # paste the scoped token
+npx wrangler login
+```
+
+Then deploy:
+```bash
 npm run deploy
 ```
-Set `CF_ACCOUNT_ID` (and optional `CF_ZONE_ID`) in `wrangler.jsonc` `[vars]`, and set
-`DEMO_MODE` to `off` for live data. **Protect the deployment** before exposing live
-data — see [Security](#security--privacy).
+- With **no token set**, the deployed site shows the **sample data** — safe to share.
+- To show **your real data**, add your token (Wrangler prompts you to paste it) and deploy
+  again:
+  ```bash
+  wrangler secret put CF_API_TOKEN
+  npm run deploy
+  ```
+  **Protect the site first** if it will show real data — see [Security](#security--privacy).
+  (If your token can see more than one account, add `CF_ACCOUNT_ID` in `wrangler.jsonc`.)
 
-For a **public demo** (synthetic data, safe to expose) vs a **live instance** (real data,
+For a **public demo** (sample data, safe to expose) vs a **live instance** (real data,
 must be protected), plus custom-domain setup, see **[docs/deploy.md](docs/deploy.md)**.
 
 ---
