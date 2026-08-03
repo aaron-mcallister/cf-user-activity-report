@@ -9,6 +9,7 @@ import { searchReport } from "./search/search";
 import { normEmail } from "./report/aggregate";
 import { runPreflight } from "./preflight";
 import { snapshotToR2 } from "./retention/snapshot";
+import { verifyAccessJwt, ACCESS_JWT_HEADER } from "./auth";
 import { escapeHtml, html, page } from "./ui/layout";
 
 const HTML = { "content-type": "text/html; charset=utf-8" };
@@ -21,8 +22,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+function denyPage(title: string, body: ReturnType<typeof html>, status: number): Response {
+  return new Response(page(title, body), { status, headers: HTML });
+}
+
 /** Returns a Response if the request should be blocked, or null if allowed. */
-function guard(cfg: ResolvedConfig, request: Request): Response | null {
+async function guard(cfg: ResolvedConfig, request: Request): Promise<Response | null> {
   // If Basic Auth is configured, always enforce it.
   if (cfg.basicAuth) {
     const hdr = request.headers.get("Authorization") || "";
@@ -35,12 +40,53 @@ function guard(cfg: ResolvedConfig, request: Request): Response | null {
     }
     return null;
   }
+
   // Synthetic demo data is safe to serve openly.
   if (cfg.demo) return null;
+
+  // --- Cloudflare Access ---
+  // When Access protects the route, it injects a signed JWT header on every request.
+  const accessJwt = request.headers.get(ACCESS_JWT_HEADER);
+  if (cfg.access.aud && cfg.access.teamDomain) {
+    // Full verification configured: require a valid Access token (secure even if an
+    // unprotected route exists, because a forged token won't pass signature checks).
+    if (!accessJwt) {
+      return denyPage("Access required", accessRequiredNotice(), 403);
+    }
+    const result = await verifyAccessJwt(accessJwt, cfg.access.teamDomain, cfg.access.aud);
+    if (!result.valid) {
+      return denyPage(
+        "Access denied",
+        html`<div class="notes"><b>Access token could not be verified.</b> ${result.reason || "invalid token"}.</div>
+          <div class="panel"><div class="body" style="padding:16px"><p class="muted">
+          Check that <code>CF_ACCESS_AUD</code> matches your Access application's AUD tag and that
+          <code>CF_ACCESS_TEAM_DOMAIN</code> is your team domain.</p></div></div>`,
+        403,
+      );
+    }
+    return null; // verified Access identity
+  }
+  // Access header present but no verification configured -> trust the edge. Safe when the
+  // route itself is Access-protected (all traffic passes through Access, which sets this
+  // header). For defense-in-depth on exposed routes, set CF_ACCESS_AUD (see docs/deploy.md).
+  if (accessJwt) return null;
+
   // Explicit opt-in to serve live data without app-layer auth.
   if (cfg.allowUnauthenticated) return null;
+
   // Live data (PII) with no auth configured -> refuse with guidance.
-  return new Response(page("Setup required", setupNotice()), { status: 403, headers: HTML });
+  return denyPage("Setup required", setupNotice(), 403);
+}
+
+function accessRequiredNotice() {
+  return html`
+    <div class="notes"><b>This app is protected by Cloudflare Access.</b> No valid Access
+      session was found on this request.</div>
+    <div class="panel"><div class="body" style="padding:16px">
+      <p>If you're seeing this, you likely reached the app through a route that isn't behind
+        Access. Open it via the <b>Access-protected hostname</b> (the one where you log in), or
+        remove any unprotected route (see <code>docs/deploy.md</code>).</p>
+    </div></div>`;
 }
 
 function setupNotice() {
@@ -59,8 +105,12 @@ function setupNotice() {
     <div class="panel"><div class="body" style="padding:16px">
       <p>Before exposing live data on a <b>deployed</b> site, protect it — choose one:</p>
       <ul>
-        <li><b>Recommended:</b> put <b>Cloudflare Access</b> in front of this Worker's route
-          (Zero Trust → Access → Applications), then it's protected at the edge.</li>
+        <li><b>Recommended:</b> put <b>Cloudflare Access</b> in front of this Worker
+          (Zero Trust → Access → Applications). The app detects Access automatically — no
+          extra config needed. <b>Seeing this after adding Access?</b> Make sure you're
+          opening the <i>Access-protected</i> hostname (the one that shows the login), not an
+          unprotected route like the raw <code>*.workers.dev</code> URL. See
+          <code>docs/deploy.md</code>.</li>
         <li>Or set built-in Basic Auth secrets:
           <code>npx wrangler secret put BASIC_AUTH_USER</code> and
           <code>npx wrangler secret put BASIC_AUTH_PASS</code>.</li>
@@ -92,7 +142,7 @@ export default {
     if (url.pathname === "/favicon.ico") return new Response(null, { status: 204 });
     if (url.pathname === "/healthz") return new Response("ok", { status: 200 });
 
-    const blocked = guard(cfg, request);
+    const blocked = await guard(cfg, request);
     if (blocked) return blocked;
 
     try {

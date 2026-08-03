@@ -9,6 +9,8 @@ export interface ResolvedConfig {
   /** True = allow serving live (PII) data with no app-layer auth. Not recommended. */
   allowUnauthenticated: boolean;
   basicAuth?: { user: string; pass: string };
+  /** Optional Cloudflare Access JWT verification (defense-in-depth). */
+  access: { teamDomain?: string; aud?: string };
 }
 
 /**
@@ -36,6 +38,10 @@ export function resolveConfig(env: Env): ResolvedConfig {
     demo,
     allowUnauthenticated: (env.ALLOW_UNAUTHENTICATED || "false").toLowerCase() === "true",
     basicAuth,
+    access: {
+      teamDomain: env.CF_ACCESS_TEAM_DOMAIN?.trim().replace(/\/+$/, "") || undefined,
+      aud: env.CF_ACCESS_AUD?.trim() || undefined,
+    },
   };
 }
 

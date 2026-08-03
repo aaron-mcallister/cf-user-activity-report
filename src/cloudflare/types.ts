@@ -12,6 +12,8 @@ export interface Env {
   CF_ZONE_ID?: string;
   DEMO_MODE?: string; // "auto" | "on" | "off"
   ALLOW_UNAUTHENTICATED?: string; // "true" | "false"
+  CF_ACCESS_TEAM_DOMAIN?: string; // e.g. https://your-team.cloudflareaccess.com
+  CF_ACCESS_AUD?: string; // Access application AUD tag (enables JWT verification)
 
   // --- bindings (optional retention, off by default) ---
   ACTIVITY_BUCKET?: R2Bucket;
