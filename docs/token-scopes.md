@@ -48,7 +48,7 @@ logs status, and the approximate retention window.
 - The token is **read-only**, but still treat it like a password.
 - `npm run setup` stores it in a local file called `.dev.vars` that never leaves your
   machine and is never committed to git.
-- When deploying, add it with `wrangler secret put CF_API_TOKEN` (it stays a secret on
+- When deploying, add it with `npx wrangler secret put CF_API_TOKEN` (it stays a secret on
   Cloudflare's side). Never paste it into `wrangler.jsonc` or any file you commit.
 - Revoke it anytime from the same API Tokens page when you're done testing.
 

@@ -35,8 +35,8 @@
     "ALLOW_UNAUTHENTICATED": "false"
 
     // Optional built-in Basic Auth for the deployed app. Prefer Cloudflare Access.
-    // Set these as SECRETS, not vars:  wrangler secret put BASIC_AUTH_USER
-    //                                  wrangler secret put BASIC_AUTH_PASS
+    // Set these as SECRETS, not vars:  npx wrangler secret put BASIC_AUTH_USER
+    //                                  npx wrangler secret put BASIC_AUTH_PASS
   }
 
   // ---------------------------------------------------------------------------
