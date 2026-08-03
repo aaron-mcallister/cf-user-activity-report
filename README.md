@@ -85,19 +85,22 @@ calls Cloudflare's own APIs and renders HTML.
 
 ## Tiers
 
-**Tier 1 — Free & live (default).** The Worker queries the APIs on demand and renders
-the report. Retention = whatever your plan exposes (short — see
-[Limitations](#limitations--honesty)). Cost: **$0** on Workers Free.
+**Free (default).** Clone, `wrangler deploy`, done — **$0** on Workers Free. The Worker
+queries the APIs on demand and renders the report, storing nothing. Retention is whatever
+your plan exposes (short — see [Limitations](#limitations--honesty)).
 
-**Tier 2 — Free + your own retention.** Uncomment the R2 binding + Cron trigger in
-`wrangler.jsonc` and the Worker snapshots each pull into **R2** (free up to 10 GB) as
-NDJSON, so you keep history well beyond the platform window. Still **$0** for most orgs.
+- **Optional: keep your own history (still free).** Turn on retention and the Worker
+  snapshots each pull into **R2** (free up to 10 GB) as NDJSON, so history survives beyond
+  the platform's short analytics window — still **$0** for most orgs. It's a one-step
+  opt-in (create a bucket + uncomment a block in `wrangler.jsonc`); the default stays
+  stateless so the zero-config deploy always just works. See
+  [docs/deploy.md](docs/deploy.md#retention).
 
-**Tier 3 — Enterprise (cross-dataset SQL, incl. DLP).** For customers who own Cloudflare
-One + WAF and will buy some R2: pipe raw events via **Logpush → R2 → R2 Data Catalog**
-and run true cross-dataset **SQL joins** (including **DLP × HTTP**) with **R2 SQL**.
-Logpush requires an **Enterprise** plan. This is the Enterprise mirror of the Log
-Explorer join gap. See [docs/enterprise-r2-sql.md](docs/enterprise-r2-sql.md).
+**Enterprise (cross-dataset SQL, incl. DLP).** For customers who own Cloudflare One + WAF
+and will buy some R2: pipe raw events via **Logpush → R2 → R2 Data Catalog** and run true
+cross-dataset **SQL joins** (including **DLP × HTTP**) with **R2 SQL**. Logpush requires an
+**Enterprise** plan. This is the Enterprise mirror of the Log Explorer join gap. See
+[docs/enterprise-r2-sql.md](docs/enterprise-r2-sql.md).
 
 ---
 
@@ -187,12 +190,13 @@ the deployment as sensitive:
 
 - **Retention is short.** These are live analytics APIs, not a log warehouse. On our
   test account we measured **~30 days** for Gateway/Zero Trust and **~8 days** for zone
-  HTTP; lower plans may differ. Enable **Tier 2 (R2)** to keep your own history.
+  HTTP; lower plans may differ. Turn on **optional R2 retention** (still free) to keep
+  your own history.
 - **Aggregated, not raw events.** GraphQL returns grouped/sampled rows — perfect for a
   *report*, but not raw per-request logs. Raw per-event export = Logpush = Enterprise.
 - **Per-user web activity needs WARP.** Identity is attached to **Gateway HTTP (L7)**.
   Gateway **DNS** analytics are aggregate-only (no per-user identity dimensions).
-- **DLP is not on this path.** DLP correlation is the **Tier 3 / Enterprise** story
+- **DLP is not on this path.** DLP correlation is the **Enterprise** story
   (Logpush → R2 → R2 SQL), not the free demo.
 
 Here's exactly what's confirmed on the **free** GraphQL path vs. what needs **Logpush
@@ -209,16 +213,16 @@ Here's exactly what's confirmed on the **free** GraphQL path vs. what needs **Lo
 - **What this means for the demo vs. live:** category views/search work on **live free-tier
   data**. The **file-hash pivot** and **bytes-transferred** panels are shown with
   **synthetic demo data** to illustrate the full experience; on live free-tier accounts
-  those panels are empty (with a note), and light up in the Enterprise (Logpush → R2 → R2 SQL)
-  tier. See [docs/enterprise-r2-sql.md](docs/enterprise-r2-sql.md).
+  those panels are empty (with a note), and light up in the **Enterprise** tier
+  (Logpush → R2 → R2 SQL). See [docs/enterprise-r2-sql.md](docs/enterprise-r2-sql.md).
 - Run `npm run preflight` to see exactly what *your* plan exposes.
 
 ---
 
 ## Roadmap
 - [ ] Wire **live** per-user categories (confirmed available free on `gatewayL7RequestsAdaptiveGroups`)
-- [ ] Historical charts sourced from R2 snapshots (Tier 2)
-- [ ] Example R2 SQL notebooks for the Enterprise DLP × HTTP join, file-hash, and bytes (Tier 3)
+- [ ] Historical charts sourced from R2 snapshots (optional retention)
+- [ ] Example R2 SQL notebooks for the Enterprise DLP × HTTP join, file-hash, and bytes
 - [ ] Optional Access JWT verification in-Worker
 
 ## Contributing

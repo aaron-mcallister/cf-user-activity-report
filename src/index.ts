@@ -142,7 +142,7 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    // TIER 2: snapshot to R2 (no-op unless ACTIVITY_BUCKET is bound).
+    // Optional retention: snapshot to R2 (no-op unless ACTIVITY_BUCKET is bound).
     ctx.waitUntil(
       snapshotToR2(env).then((r) => console.log("snapshot:", JSON.stringify(r))),
     );

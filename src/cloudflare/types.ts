@@ -13,7 +13,7 @@ export interface Env {
   DEMO_MODE?: string; // "auto" | "on" | "off"
   ALLOW_UNAUTHENTICATED?: string; // "true" | "false"
 
-  // --- bindings (optional Tier 2 retention) ---
+  // --- bindings (optional retention, off by default) ---
   ACTIVITY_BUCKET?: R2Bucket;
 }
 

@@ -32,7 +32,7 @@ person*. We fetch each dataset from its own API and correlate on identity in
 - `src/report/export.ts` — CSV serialization.
 - `src/ui/*` — dependency-free, auto-escaping HTML rendering.
 - `src/preflight.ts` — plan capability + retention probe.
-- `src/retention/snapshot.ts` — Tier 2 R2 snapshot (scheduled).
+- `src/retention/snapshot.ts` — optional R2 snapshot (scheduled, off by default).
 - `src/fixtures.ts` — synthetic demo data, shaped like the real APIs.
 
 ## Demo mode
