@@ -1,4 +1,5 @@
-# Copy this file to `.dev.vars` for local development (`npm run dev`).
+# Easiest way to create your .dev.vars: run `npm run setup` and paste your token.
+# This file is the by-hand alternative — copy it to `.dev.vars` for local dev (`npm run dev`).
 # `.dev.vars` is gitignored — NEVER commit a real token.
 #
 # Create a scoped, read-only API token at:
