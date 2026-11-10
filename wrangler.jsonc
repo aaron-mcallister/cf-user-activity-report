@@ -14,8 +14,14 @@
   // data. See docs/deploy.md.
   // ---------------------------------------------------------------------------
 
+  // LIVE instances (real data): once a custom domain is attached, also set
+  //   "workers_dev": false, "preview_urls": false
+  // so the only way in is the Access-protected hostname. (Leave both on for demo-only deploys.)
+
+  // Observability is OFF by default: request logs include URLs, and the /user/<email>
+  // route puts user emails (PII) in them. Enable only if you accept that in your logs.
   "observability": {
-    "enabled": true
+    "enabled": false
   },
   "vars": {
     // Your Cloudflare Account ID (Dash -> any domain -> Overview, right rail).
@@ -29,16 +35,15 @@
     // Force with "on" (always demo) or "off" (always live).
     "DEMO_MODE": "auto",
 
-    // Safety valve: serving REAL user activity (PII) requires auth to be configured.
-    // The app AUTO-DETECTS Cloudflare Access (recommended) — put Access in front and no
-    // config is needed here. Set to "true" only if you knowingly want to serve live data
-    // with no app-layer auth (NOT recommended).
+    // Safety valve: serving REAL user activity (PII) requires auth to be configured
+    // (Cloudflare Access + the two CF_ACCESS_* vars below, or Basic Auth secrets).
+    // "true" only takes effect on a localhost request (local dev); it is ignored when deployed.
     "ALLOW_UNAUTHENTICATED": "false",
 
-    // Optional (defense-in-depth): verify the Cloudflare Access JWT signature, so even an
-    // exposed route (e.g. a still-enabled *.workers.dev URL) can't be spoofed. Fill both
-    // to turn on verification. AUD = your Access application's "Application Audience (AUD)
-    // Tag"; team domain = your Zero Trust team domain. See docs/deploy.md.
+    // REQUIRED to use Cloudflare Access for live data: the app verifies the signed Access
+    // JWT (a bare header is never trusted), so even an exposed route (e.g. a still-enabled
+    // *.workers.dev URL) can't be spoofed. AUD = your Access application's "Application
+    // Audience (AUD) Tag"; team domain = your Zero Trust team domain. See docs/deploy.md.
     "CF_ACCESS_TEAM_DOMAIN": "",
     "CF_ACCESS_AUD": ""
 

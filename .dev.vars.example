@@ -1,0 +1,8 @@
+# Copy to .dev.vars (gitignored) for local development:
+#   cp .dev.vars.example .dev.vars && chmod 600 .dev.vars
+# NEVER commit real values. Create a scoped, read-only token: docs/token-scopes.md
+CF_API_TOKEN="paste-your-scoped-read-only-token-here"
+# CF_ACCOUNT_ID="your-account-id"
+DEMO_MODE="off"
+# Lets you view live data on localhost without app-layer auth. Ignored on any other hostname.
+ALLOW_UNAUTHENTICATED="true"

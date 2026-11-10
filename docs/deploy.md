@@ -30,28 +30,31 @@ Then protect it (pick one):
 - **Cloudflare Access** in front of the Worker (Zero Trust → Access → Applications) — recommended.
 - Built-in Basic Auth: `npx wrangler secret put BASIC_AUTH_USER` + `BASIC_AUTH_PASS`.
 
-The Worker refuses to serve live data unless one of these is present (or you set
-`ALLOW_UNAUTHENTICATED=true`, which you shouldn't for real data).
+The Worker refuses to serve live data unless one of these is configured.
+(`ALLOW_UNAUTHENTICATED=true` only takes effect on a `localhost` request.)
 
 ### Protecting with Cloudflare Access (recommended)
-The app **auto-detects** Cloudflare Access — once Access is in front, authenticated users
-are let straight through, no app config needed.
+Access in front of the Worker is **not enough by itself**: the app also verifies the signed
+Access token (see "Required: verify the Access JWT" below). That way a forged
+`Cf-Access-Jwt-Assertion` header — or a route that bypasses Access, like a `workers.dev`
+URL — can't get in.
 
 1. **Zero Trust → Access → Applications → Add an application → Self-hosted.**
 2. Set the application domain to your app's hostname.
 3. Add a policy (e.g. Allow → *Emails ending in* `@yourcompany.com`), and enable a login
    method (One-time PIN works with no IdP setup).
-4. Save. Visit the app — you'll get the Access login, then the report.
+4. Save, then complete **Required: verify the Access JWT** below (the report stays
+   locked until you do).
 
 > ⚠️ **Mind the `*.workers.dev` bypass.** If you protect a **custom domain** with Access
 > but leave the `workers.dev` URL enabled, that URL is an **unprotected way in**. Do one of:
 > - protect the `workers.dev` route with Access too (one-click in the Access app), **or**
 > - disable it by adding `"workers_dev": false` to `wrangler.jsonc` and redeploying, **or**
-> - turn on **JWT verification** below (safe even if a route is exposed).
+> - and either way keep **JWT verification** below on (it's required, and makes an exposed route harmless).
 
-### Optional: verify the Access JWT (defense-in-depth)
-For the strongest posture, have the app cryptographically verify the Access token (so a
-forged request can't get in even on an exposed route):
+### Required: verify the Access JWT
+The app cryptographically verifies the Access token, so a forged request can't get in even
+on an exposed route:
 
 1. In your Access application, copy the **Application Audience (AUD) Tag**
    (Access → Applications → your app → Overview).

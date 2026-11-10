@@ -5,10 +5,26 @@
 
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { existsSync, writeFileSync, copyFileSync } from "node:fs";
+import { existsSync, writeFileSync, copyFileSync, chmodSync } from "node:fs";
+import { Writable } from "node:stream";
 
-const rl = createInterface({ input: stdin, output: stdout });
-const ask = async (prompt) => (await rl.question(prompt)).trim();
+// The token is a secret: don't echo it to the terminal while it's typed or pasted.
+let muted = false;
+const out = new Writable({
+  write(chunk, enc, cb) {
+    if (!muted) stdout.write(chunk, enc);
+    cb();
+  },
+});
+const rl = createInterface({ input: stdin, output: out, terminal: Boolean(stdin.isTTY) });
+const ask = async (prompt) => {
+  stdout.write(prompt);
+  muted = Boolean(stdin.isTTY);
+  const answer = await rl.question("");
+  muted = false;
+  stdout.write("\n");
+  return answer.trim();
+};
 
 console.log(`
 ────────────────────────────────────────────────────────
@@ -23,7 +39,7 @@ You'll need a read-only API token (about 2 minutes to create). Step-by-step:
   https://github.com/aaron-mcallister/cf-user-activity-report/blob/main/docs/token-scopes.md
 `);
 
-const token = await ask('Paste your Cloudflare API token (or press Enter to skip): ');
+const token = await ask('Paste your Cloudflare API token (input is hidden; press Enter to skip): ');
 
 if (!token) {
   console.log('\nNo token entered — no problem. Run "npm run dev" to explore with sample data.\n');
@@ -46,6 +62,7 @@ if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) {
 let backedUp = false;
 if (existsSync(".dev.vars")) {
   copyFileSync(".dev.vars", ".dev.vars.bak");
+  chmodSync(".dev.vars.bak", 0o600);
   backedUp = true;
 }
 
@@ -55,11 +72,14 @@ const contents =
   `CF_API_TOKEN="${token}"\n` +
   `DEMO_MODE="off"\n` +
   `# Lets you view live data on your own computer (localhost) without extra auth.\n` +
+  `# The app only honors this on a localhost request.\n` +
   `# Safe here because this file is local-only and never used when you deploy —\n` +
   `# a deployed site still refuses live data until you protect it. See README > Security.\n` +
   `ALLOW_UNAUTHENTICATED="true"\n`;
 
-writeFileSync(".dev.vars", contents);
+// Owner-only permissions: this file holds a secret.
+writeFileSync(".dev.vars", contents, { mode: 0o600 });
+chmodSync(".dev.vars", 0o600);
 rl.close();
 
 console.log(`

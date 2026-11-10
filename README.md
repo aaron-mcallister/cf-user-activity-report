@@ -154,18 +154,16 @@ created (or run `npm run setup` again to change the token).
 <details>
 <summary><b>Prefer to set it up by hand?</b> (instead of <code>npm run setup</code>)</summary>
 
-`npm run setup` just writes a small file called `.dev.vars` for you. To create it
-yourself, run these three lines — replace <code>YOUR_TOKEN</code> with the token you copied
-(keep the quotes):
+`npm run setup` just writes a small file called `.dev.vars` for you. To do it yourself,
+copy the example and edit it in any text editor:
 ```bash
-echo 'CF_API_TOKEN="YOUR_TOKEN"' > .dev.vars
-echo 'DEMO_MODE="off"' >> .dev.vars
-echo 'ALLOW_UNAUTHENTICATED="true"' >> .dev.vars
+cp .dev.vars.example .dev.vars
+chmod 600 .dev.vars        # it will hold a secret
 ```
-Then `npm run dev`. (The third line lets you view live data on **localhost** without extra
-auth — safe because `.dev.vars` is local-only and never used when you deploy.) Optional: add
-`CF_ACCOUNT_ID="..."` if the token can see more than one account. You can also copy
-`.dev.vars.example` to `.dev.vars` and edit it in any text editor.
+Then paste your token into `CF_API_TOKEN`. (Don't type the token into a shell command — it
+would be saved in your shell history.) `ALLOW_UNAUTHENTICATED="true"` lets you view live data
+on **localhost** only; the app ignores it on any other hostname, and `.dev.vars` is never used
+when you deploy. Optional: add `CF_ACCOUNT_ID="..."` if the token can see more than one account.
 </details>
 
 ### 4. Deploy
@@ -202,13 +200,13 @@ must be protected), plus custom-domain setup, see **[docs/deploy.md](docs/deploy
 | `CF_ACCOUNT_ID` | var | Account to report on (auto-discovered if the token sees one account). |
 | `CF_ZONE_ID` | var | Optional zone for origin HTTP + WAF events. |
 | `DEMO_MODE` | var | `auto` (demo when no token), `on`, or `off`. |
-| `ALLOW_UNAUTHENTICATED` | var | `true` to serve live data with no app auth (not recommended). |
-| `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | var | Optional — turn on Cloudflare Access **JWT verification** (defense-in-depth). |
+| `ALLOW_UNAUTHENTICATED` | var | `true` to serve live data with no app auth — **localhost only**; ignored on any other hostname. |
+| `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | var | **Required to use Cloudflare Access** — the app verifies the signed Access JWT. |
 | `BASIC_AUTH_USER` / `BASIC_AUTH_PASS` | secret | Optional built-in Basic Auth. |
 
-Cloudflare Access is **auto-detected** — put it in front and authenticated users are let
-through with no config. The two `CF_ACCESS_*` vars only add cryptographic JWT verification
-on top (see [docs/deploy.md](docs/deploy.md)).
+**Cloudflare Access:** put Access in front *and* set both `CF_ACCESS_*` vars — the app then
+verifies the signed Access token on every request. An Access header on its own is **not**
+trusted (any client can send one). See [docs/deploy.md](docs/deploy.md).
 
 Routes: `/` dashboard · `/user/<email>` drill-down · `/report.csv` · `/report.json` ·
 `/preflight` · `/healthz`.
@@ -220,23 +218,26 @@ Routes: `/` dashboard · `/user/<email>` drill-down · `/report.csv` · `/report
 This tool surfaces **real user activity (PII)** — emails, domains visited, logins. Treat
 the deployment as sensitive:
 
-- 🔒 **By default the Worker refuses to serve live data unless it's protected.** Put
-  **Cloudflare Access** in front (recommended — it's auto-detected), or set `BASIC_AUTH_*`.
-  Only set `ALLOW_UNAUTHENTICATED=true` for a throwaway test.
-- ⚠️ **Mind the `*.workers.dev` bypass:** if you protect a custom domain with Access but
-  leave the `workers.dev` URL enabled, that URL is an unprotected way in. Protect it too,
-  disable it (`"workers_dev": false`), or enable JWT verification. See
-  [docs/deploy.md](docs/deploy.md).
+- 🔒 **By default the Worker refuses to serve live data unless it's protected** (fails
+  closed). Use **Cloudflare Access plus JWT verification** (`CF_ACCESS_TEAM_DOMAIN` +
+  `CF_ACCESS_AUD`), or set `BASIC_AUTH_*`. `ALLOW_UNAUTHENTICATED=true` only works on localhost.
+- ⚠️ **`*.workers.dev` URLs:** with JWT verification on, an exposed `workers.dev` URL can't be
+  used to get in — a forged header fails the signature check. For live instances, still
+  disable it (`"workers_dev": false`, `"preview_urls": false`) to shrink the attack surface.
+  See [docs/deploy.md](docs/deploy.md).
 - The token is **read-only** and stored as a Wrangler **secret** (never in git).
 - Demo mode serves only synthetic data, so it's safe to show publicly.
-- Pages are served `noindex`.
+- Pages are served `noindex`, `Cache-Control: private, no-store`, with a strict CSP, no
+  framing, and no Referer leakage.
+- Workers observability (request logs) is **off** by default so user emails in `/user/<email>`
+  URLs aren't written to logs.
+- Found a vulnerability? Please report it privately — see [SECURITY.md](SECURITY.md).
 
 ---
 
 ## Limitations & honesty
 
-- **Retention is short.** These are live analytics APIs, not a log warehouse. On our
-  test account we measured **~30 days** for Gateway/Zero Trust and **~8 days** for zone
+- **Retention is short.** These are live analytics APIs, not a log warehouse. On my personal test account I measured **~30 days** for Gateway/Zero Trust and **~8 days** for zone
   HTTP; lower plans may differ. Turn on **optional R2 retention** (still free) to keep
   your own history.
 - **Aggregated, not raw events.** GraphQL returns grouped/sampled rows — perfect for a
