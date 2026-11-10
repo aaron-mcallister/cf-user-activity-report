@@ -1,8 +1,14 @@
 import type { Report } from "../cloudflare/types";
 
-function csvCell(v: unknown): string {
-  const s = v === null || v === undefined ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/**
+ * Encode one CSV cell. Text cells that start with = + - @ (or tab/CR) are prefixed with a
+ * single quote so spreadsheets don't evaluate them as formulas (CSV injection) — values
+ * like hostnames and emails originate from attacker-influenced logs.
+ */
+export function csvCell(v: unknown): string {
+  let s = v === null || v === undefined ? "" : String(v);
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 /** Flatten the per-user report into CSV (one row per user). */

@@ -10,29 +10,75 @@ import { normEmail } from "./report/aggregate";
 import { runPreflight } from "./preflight";
 import { snapshotToR2 } from "./retention/snapshot";
 import { verifyAccessJwt, ACCESS_JWT_HEADER } from "./auth";
-import { escapeHtml, html, page } from "./ui/layout";
+import { escapeHtml, html, page, PRINT_SCRIPT_CSP_HASH } from "./ui/layout";
 
 const HTML = { "content-type": "text/html; charset=utf-8" };
 const JSON_H = { "content-type": "application/json; charset=utf-8" };
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** Constant-time comparison. Both sides are hashed first so length can't leak either. */
+async function safeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [da, db] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(b)),
+  ]);
+  const x = new Uint8Array(da);
+  const y = new Uint8Array(db);
   let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
   return diff === 0;
+}
+
+// Strict CSP: no external resources, no inline script except the hash-pinned print helper.
+const CSP = [
+  "default-src 'none'",
+  "style-src 'unsafe-inline'",
+  `script-src '${PRINT_SCRIPT_CSP_HASH}'`,
+  "img-src 'self' data:",
+  "form-action 'self'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+/** These pages contain PII: never cache, never index, never frame, never leak via Referer. */
+function withSecurityHeaders(res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.set("Cache-Control", "private, no-store");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Referrer-Policy", "no-referrer");
+  headers.set("X-Robots-Tag", "noindex, nofollow");
+  headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  if ((headers.get("content-type") || "").startsWith("text/html")) {
+    headers.set("Content-Security-Policy", CSP);
+    headers.set("X-Frame-Options", "DENY");
+  }
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
 function denyPage(title: string, body: ReturnType<typeof html>, status: number): Response {
   return new Response(page(title, body), { status, headers: HTML });
 }
 
-/** Returns a Response if the request should be blocked, or null if allowed. */
-async function guard(cfg: ResolvedConfig, request: Request): Promise<Response | null> {
+/**
+ * Returns a Response if the request should be blocked, or null if allowed.
+ *
+ * Live data is PII, so this fails closed. A request is allowed only if:
+ *   1. Basic Auth is configured and the credentials match, or
+ *   2. the app is in demo mode (synthetic data only), or
+ *   3. a Cloudflare Access JWT is present AND verifies (signature, issuer, audience,
+ *      expiry) against CF_ACCESS_TEAM_DOMAIN / CF_ACCESS_AUD, or
+ *   4. ALLOW_UNAUTHENTICATED=true AND the request hostname is loopback (local dev only).
+ *
+ * The mere presence of an Access header is never trusted: any client can send one.
+ */
+async function guard(cfg: ResolvedConfig, request: Request, url: URL): Promise<Response | null> {
   // If Basic Auth is configured, always enforce it.
   if (cfg.basicAuth) {
     const hdr = request.headers.get("Authorization") || "";
     const expected = "Basic " + btoa(`${cfg.basicAuth.user}:${cfg.basicAuth.pass}`);
-    if (!timingSafeEqual(hdr, expected)) {
+    if (!(await safeEqual(hdr, expected))) {
       return new Response("Authentication required", {
         status: 401,
         headers: { "WWW-Authenticate": 'Basic realm="User Activity Report"' },
@@ -44,12 +90,9 @@ async function guard(cfg: ResolvedConfig, request: Request): Promise<Response | 
   // Synthetic demo data is safe to serve openly.
   if (cfg.demo) return null;
 
-  // --- Cloudflare Access ---
-  // When Access protects the route, it injects a signed JWT header on every request.
-  const accessJwt = request.headers.get(ACCESS_JWT_HEADER);
+  // --- Cloudflare Access, with cryptographic verification of the signed token ---
   if (cfg.access.aud && cfg.access.teamDomain) {
-    // Full verification configured: require a valid Access token (secure even if an
-    // unprotected route exists, because a forged token won't pass signature checks).
+    const accessJwt = request.headers.get(ACCESS_JWT_HEADER);
     if (!accessJwt) {
       return denyPage("Access required", accessRequiredNotice(), 403);
     }
@@ -66,15 +109,11 @@ async function guard(cfg: ResolvedConfig, request: Request): Promise<Response | 
     }
     return null; // verified Access identity
   }
-  // Access header present but no verification configured -> trust the edge. Safe when the
-  // route itself is Access-protected (all traffic passes through Access, which sets this
-  // header). For defense-in-depth on exposed routes, set CF_ACCESS_AUD (see docs/deploy.md).
-  if (accessJwt) return null;
 
-  // Explicit opt-in to serve live data without app-layer auth.
-  if (cfg.allowUnauthenticated) return null;
+  // Local development only: explicit opt-in, honored solely on a loopback hostname.
+  if (cfg.allowUnauthenticated && LOOPBACK_HOSTS.has(url.hostname)) return null;
 
-  // Live data (PII) with no auth configured -> refuse with guidance.
+  // Live data (PII) with no verified auth -> refuse with guidance.
   return denyPage("Setup required", setupNotice(), 403);
 }
 
@@ -93,29 +132,24 @@ function setupNotice() {
   return html`
     <div class="notes">
       <b>Live data is protected.</b> This is not an error — the app won't show real user
-      activity (PII) until it's protected by authentication.
+      activity (PII) until authentication is configured.
     </div>
     <div class="callout">
       <h3>👩‍💻 Testing on your own computer?</h3>
-      <div>This is safe to bypass on localhost. The easiest way: run <code>npm run setup</code>
-        (it enables local viewing for you), or add this line to your <code>.dev.vars</code> file
-        and restart:<br>
+      <div>Run <code>npm run setup</code> (it enables local viewing for you), or add this line to
+        your <code>.dev.vars</code> file and restart. It is honored on <b>localhost only</b>:<br>
         <code>ALLOW_UNAUTHENTICATED="true"</code></div>
     </div>
     <div class="panel"><div class="body" style="padding:16px">
-      <p>Before exposing live data on a <b>deployed</b> site, protect it — choose one:</p>
+      <p>Before exposing live data on a <b>deployed</b> site, configure authentication — choose one:</p>
       <ul>
         <li><b>Recommended:</b> put <b>Cloudflare Access</b> in front of this Worker
-          (Zero Trust → Access → Applications). The app detects Access automatically — no
-          extra config needed. <b>Seeing this after adding Access?</b> Make sure you're
-          opening the <i>Access-protected</i> hostname (the one that shows the login), not an
-          unprotected route like the raw <code>*.workers.dev</code> URL. See
-          <code>docs/deploy.md</code>.</li>
+          (Zero Trust → Access → Applications) <i>and</i> set <code>CF_ACCESS_TEAM_DOMAIN</code>
+          and <code>CF_ACCESS_AUD</code> so the app verifies the signed Access token. An Access
+          header on its own is not trusted. See <code>docs/deploy.md</code>.</li>
         <li>Or set built-in Basic Auth secrets:
           <code>npx wrangler secret put BASIC_AUTH_USER</code> and
           <code>npx wrangler secret put BASIC_AUTH_PASS</code>.</li>
-        <li>Or, only for a throwaway test, set <code>ALLOW_UNAUTHENTICATED=true</code> in
-          <code>wrangler.jsonc</code> (not recommended).</li>
       </ul>
       <p class="muted">Tip: run <code>npm run dev</code> with no token to explore the UI with
         synthetic demo data instead.</p>
@@ -134,7 +168,7 @@ function errorPage(message: string): string {
   );
 }
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const cfg = resolveConfig(env);
@@ -142,7 +176,7 @@ export default {
     if (url.pathname === "/favicon.ico") return new Response(null, { status: 204 });
     if (url.pathname === "/healthz") return new Response("ok", { status: 200 });
 
-    const blocked = await guard(cfg, request);
+    const blocked = await guard(cfg, request, url);
     if (blocked) return blocked;
 
     try {
@@ -198,10 +232,16 @@ export default {
     }
   },
 
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     // Optional retention: snapshot to R2 (no-op unless ACTIVITY_BUCKET is bound).
     ctx.waitUntil(
       snapshotToR2(env).then((r) => console.log("snapshot:", JSON.stringify(r))),
     );
   },
 };
+
+export default {
+  fetch: async (request: Request, env: Env): Promise<Response> =>
+    withSecurityHeaders(await worker.fetch(request, env)),
+  scheduled: worker.scheduled,
+} satisfies ExportedHandler<Env>;

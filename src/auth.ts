@@ -73,7 +73,10 @@ export async function verifyAccessJwt(
     };
 
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && now >= payload.exp) return { valid: false, reason: "token expired" };
+    // exp is mandatory: a signed token without an expiry would be valid forever.
+    if (typeof payload.exp !== "number" || now >= payload.exp) {
+      return { valid: false, reason: "token expired or missing exp" };
+    }
     if (trimSlash(payload.iss || "") !== trimSlash(teamDomain)) {
       return { valid: false, reason: "issuer mismatch" };
     }

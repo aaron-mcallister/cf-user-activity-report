@@ -145,6 +145,15 @@ footer.app { color: var(--muted); font-size: 12px; margin-top: 28px; text-align:
 }
 `;
 
+/**
+ * The only inline script: wires the "PDF" links ([data-print]) to window.print().
+ * It is pinned in the Content-Security-Policy by hash, so the app needs no
+ * 'unsafe-inline' scripts. test/guard.test.ts asserts the hash stays in sync.
+ */
+export const PRINT_SCRIPT =
+  'document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-print]");if(t){e.preventDefault();window.print();}});';
+export const PRINT_SCRIPT_CSP_HASH = "sha256-PQapFB/D9QdFZL73nM9OXS/wrvyevrD6lqHZ/JbDh2s=";
+
 export function page(title: string, body: SafeHtml): string {
   return `<!doctype html>
 <html lang="en">
@@ -171,6 +180,7 @@ ${body.value}
   Clone &amp; deploy your own: <a href="https://github.com/aaron-mcallister/cf-user-activity-report">github.com/aaron-mcallister/cf-user-activity-report</a>
 </footer>
 </div>
+<script>${PRINT_SCRIPT}</script>
 </body>
 </html>`;
 }
